@@ -1,0 +1,28 @@
+# Creates the AWS resources required to run Jenkins on AWS
+Parameters:
+  VolumeAZ:
+    Type: String
+    Default: "eu-central-1a"
+    AllowedValues:
+      - "eu-central-1a"
+      - "eu-central-1b"
+    Description: "AZ for the EBS volume in the Frankfurt region. Either eu-central-1a or eu-central-1b"
+
+Resources:
+  JenkinsVolume:
+    Type: "AWS::EC2::Volume"
+    Properties:
+      AvailabilityZone: !Ref VolumeAZ
+      Size: 100
+      VolumeType: gp2
+      Tags:
+        - Key: Name
+          Value: "jenkins-openshift-vol"
+        - Key: Project
+          Value: tools
+    DeletionPolicy: Snapshot
+
+Outputs:
+  JenkinEBSVolumeID:
+    Description: "The ID of the EBS volume used for Jenkins data"
+    Value: !Ref JenkinsVolume
