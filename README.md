@@ -29,11 +29,7 @@ The template must first be added to the cluster and a new application can be
 created using the following command -
 
 ```sh
-
 # Add policy for service account
-oadm policy add-scc-to-user anyuid -z default
-oadm policy add-scc-to-user anyuid -z builder
-oadm policy add-scc-to-user anyuid -z deployer
 oadm policy add-scc-to-user anyuid -z jenkins-user
 
 # Create application
@@ -43,7 +39,6 @@ oc new-app --template=jenkins \
   -p JENKINS_DOCKER_TAG='2.32.3' \
   -p JENKINS_VOL_ID=vol-0346a6530cfea8c2c \
   -p JENKINS_VOL_SIZE=100Gi
-
 ```
 
 ## Steps
@@ -51,4 +46,5 @@ oc new-app --template=jenkins \
 - Create the CloudFormation stack with the EBS volumes
 - (Optional) Build docker image and push to registry
 - Add template to OpenShift cluster
+- Add policy for service account
 - Create new app passing the required parameters
