@@ -1,5 +1,20 @@
 # openshift-jenkins
 
+## Docker image
+
+The Jenkins Docker image is pre-built with required plugins.
+See `docker` directory.
+
+To run the container locally, run -
+
+```
+docker run -p 8080:8080 -p 50000:50000 isubuz/jenkins:2.32.3
+```
+
+The default admin password will be printed in the Jenkins container logs. Use
+that to login for the first time. Skip the screen which asks to install plugins
+as the plugins are already installed.
+
 ## EBS volumes
 
 The Jenkins data is persisted in EBS volumes and used as `PersistentVolume` in
@@ -28,6 +43,7 @@ oc new-app --template=jenkins \
   -p JENKINS_DOCKER_TAG='2.32.3' \
   -p JENKINS_VOL_ID=vol-0346a6530cfea8c2c \
   -p JENKINS_VOL_SIZE=100Gi
+
 ```
 
 ## Steps
