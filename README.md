@@ -22,6 +22,25 @@ the OpenShift cluster. The EBS volumes are created by the CloudFormation
 template in `cf.yml`. The EBS volume ID is passed as an input to the OpenShift
 template.
 
+```sh
+aws cloudformation create-stack \
+  --stack-name jenkins-infra \
+  --template-body file://cf.yml \
+  --parameters \
+      ParameterKey=VpcId,ParameterValue=vpc-1d2d9c75 \
+      ParameterKey=PrivateSubnetACidr,ParameterValue=vpc-1d2d9c75 \
+      ParameterKey=PrivateSubnetBCidr,ParameterValue=vpc-1d2d9c75 \
+      ParameterKey=JenkinsNodeSG,ParameterValue=sg-926ab9f9 \
+  --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
+```
+
+## Build AMI for Jenkins slaves
+
+```sh
+cd packer
+packer build jenkins-slaves.json
+```
+
 ## OpenShift application
 
 The Jenkins application is represented by the template `openshift-template.yml`.

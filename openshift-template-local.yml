@@ -25,67 +25,13 @@ parameters:
     description: "The name of the Jenkins Docker image (without the tag)."
     value: "jenkins"
 
-  - name: "JENKINS_VOL_ID"
-    displayName: "EBS volume ID"
-    description: "The ID of the EBS volume storing Jenkins data."
-    required: true
-
-  - name: "JENKINS_VOL_SIZE"
-    displayName: "EBS volume size"
-    description: "The size of the EBS volume storing Jenkins data."
 objects:
-  - kind: ImageStream
-    apiVersion: v1
-    metadata:
-      name: "${APPLICATION_NAME}"
-      labels:
-        app: "${APPLICATION_NAME}"
-    spec:
-      tags:
-        - name: "jenkins-${JENKINS_DOCKER_TAG}"
-          from:
-            kind: DockerImage
-            name: "${JENKINS_DOCKER_IMAGE}:${JENKINS_DOCKER_TAG}"
-
   - kind: ServiceAccount
     apiVersion: v1
     metadata:
       name: "${APPLICATION_NAME}-user"
       labels:
         app: "${APPLICATION_NAME}"
-
-  - kind: PersistentVolume
-    apiVersion: v1
-    metadata:
-      name: "${APPLICATION_NAME}-pv"
-      annotations:
-        pv.beta.kubernetes.io/gid: "1234"
-      labels:
-        app: "${APPLICATION_NAME}"
-    spec:
-      capacity:
-        storage: ${JENKINS_VOL_SIZE}
-      accessModes:
-        - ReadWriteOnce
-      awsElasticBlockStore:
-        fsType: ext4
-        volumeID: "${JENKINS_VOL_ID}"
-
-  - kind: PersistentVolumeClaim
-    apiVersion: v1
-    metadata:
-      name: "${APPLICATION_NAME}-data"
-      labels:
-        app: "${APPLICATION_NAME}"
-    spec:
-      accessModes:
-        - ReadWriteOnce
-      resources:
-        requests:
-          storage: "${JENKINS_VOL_SIZE}"
-      selector:
-        matchLabels:
-          app: "${APPLICATION_NAME}"
 
   - kind: DeploymentConfig
     apiVersion: v1
@@ -98,14 +44,6 @@ objects:
         type: Recreate
       triggers:
         - type: ConfigChange
-        - type: ImageChange
-          imageChangeParams:
-            automatic: true
-            containerNames:
-              - "${APPLICATION_NAME}"
-            from:
-              kind: ImageStreamTag
-              name: "${APPLICATION_NAME}:jenkins-${JENKINS_DOCKER_TAG}"
       replicas: 1
       test: false
       selector:
@@ -118,12 +56,6 @@ objects:
             deploymentconfig: "${APPLICATION_NAME}"
         spec:
           serviceAccountName: "${APPLICATION_NAME}-user"
-          volumes:
-            - name: "jenkins-volume"
-              persistentVolumeClaim:
-                claimName: "${APPLICATION_NAME}-data"
-          securityContext:
-            fsGroup: 1234
           containers:
             - name: "${APPLICATION_NAME}"
               image: "${APPLICATION_NAME}"
@@ -132,10 +64,6 @@ objects:
                   protocol: TCP
                 - containerPort: 50000
                   protocol: TCP
-              volumeMounts:
-                - mountPath: /var/jenkins_home
-                  name: jenkins-volume
-                  readOnly: false
               imagePullPolicy: Always
               livenessProbe:
                 failureThreshold: 30

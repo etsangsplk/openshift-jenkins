@@ -1,5 +1,14 @@
 # Creates the AWS resources required to run Jenkins on AWS
 Parameters:
+  VpcId:
+    Type: String
+
+  PrivateSubnetACidr:
+    Type: String
+
+  PrivateSubnetBCidr:
+    Type: String
+
   VolumeAZ:
     Type: String
     Default: "eu-central-1a"
@@ -8,7 +17,97 @@ Parameters:
       - "eu-central-1b"
     Description: "AZ for the EBS volume in the Frankfurt region. Either eu-central-1a or eu-central-1b"
 
+  JenkinsNodeSG:
+    Type: String
+    Description: "Security group of the OpenShift node running Jenkins"
+
 Resources:
+  JenkinsUser:
+    Type: "AWS::IAM::User"
+    Properties:
+      Policies:
+      - PolicyName: ManageSlaveInstances
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - "ec2:DescribeSpotInstanceRequests"
+            - "ec2:CancelSpotInstanceRequests"
+            - "ec2:GetConsoleOutput"
+            - "ec2:RequestSpotInstances"
+            - "ec2:RunInstances"
+            - "ec2:StartInstances"
+            - "ec2:StopInstances"
+            - "ec2:TerminateInstances"
+            - "ec2:CreateTags"
+            - "ec2:DeleteTags"
+            - "ec2:DescribeInstances"
+            - "ec2:DescribeKeyPairs"
+            - "ec2:DescribeRegions"
+            - "ec2:DescribeImages"
+            - "ec2:DescribeAvailabilityZones"
+            - "ec2:DescribeSecurityGroups"
+            - "ec2:DescribeSubnets"
+            - "iam:PassRole"
+            Resource: "*"
+
+  JenkinsSlaveECRAdminRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service: [ "ec2.amazonaws.com" ]
+          Action: [ "sts:AssumeRole" ]
+      Policies:
+      - PolicyName: PushImageToECRRepo
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - "ecr:GetAuthorizationToken"
+            - "ecr:BatchCheckLayerAvailability"
+            - "ecr:GetDownloadUrlForLayer"
+            - "ecr:GetRepositoryPolicy"
+            - "ecr:DescribeRepositories"
+            - "ecr:ListImages"
+            - "ecr:DescribeImages"
+            - "ecr:BatchGetImage"
+            - "ecr:InitiateLayerUpload"
+            - "ecr:UploadLayerPart"
+            - "ecr:CompleteLayerUpload"
+            - "ecr:PutImage"
+            Resource: "*"
+
+  JenkinsSlaveInstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      InstanceProfileName: jenkinsSlave
+      Roles:
+      - !Ref JenkinsSlaveECRAdminRole
+
+  JenkinsSlaveSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Allow SSH access from Jenkins master to Jenkins slave"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: !Ref PrivateSubnetACidr
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: !Ref PrivateSubnetBCidr
+      Tags:
+      - Key: Name
+        Value: jenkins_slave_sg
+
   JenkinsVolume:
     Type: "AWS::EC2::Volume"
     Properties:
@@ -16,10 +115,10 @@ Resources:
       Size: 100
       VolumeType: gp2
       Tags:
-        - Key: Name
-          Value: "jenkins-openshift-vol"
-        - Key: Project
-          Value: tools
+      - Key: Name
+        Value: "jenkins-openshift-vol"
+      - Key: Project
+        Value: tools
     DeletionPolicy: Snapshot
 
 Outputs:

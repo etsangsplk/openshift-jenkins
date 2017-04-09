@@ -1,0 +1,26 @@
+{
+  "variables": {
+    "region": "eu-central-1"
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "region": "{{ user `region` }}",
+      "source_ami": "ami-9bf712f4",
+      "instance_type": "t2.micro",
+      "ami_name": "jenkins-slave-{{ timestamp }}",
+      "ssh_username": "centos",
+      "ssh_pty": "true",
+      "tags": {
+        "Name": "jenkins-slave",
+        "CreatedAt": "{{ timestamp }}"
+      }
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "script": "./userdata.sh"
+    }
+  ]
+}
